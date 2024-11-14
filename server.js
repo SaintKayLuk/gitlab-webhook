@@ -1,0 +1,85 @@
+// 引入依赖
+const express = require('express');
+const axios = require('axios');
+const app = express();
+const port = 3000;
+
+// 钉钉机器人的 Webhook URL（替换为你自己的钉钉 webhook URL）
+const dingTalkWebhook = 'https://oapi.dingtalk.com/robot/send?access_token=3e78abf6f6fcbb85ec2c665f84b75bd26ef32c1f2b9a77372c2edb08e50f785c';
+
+// 使服务器能够解析 JSON 请求体
+app.use(express.json());
+
+// 处理 GitLab Webhook 请求
+app.post('/gitlab-webhook', (req, res) => {
+    // 获取流水线状态
+    const pipelineStatus = req.body.object_attributes.status;
+    console.log(pipelineStatus)
+
+    let message=null
+    if (pipelineStatus === 'success' ) {
+        //构造要发送给钉钉的消息
+         message = {
+            msgtype: 'markdown',
+            markdown: {
+                title: 'GitLab Pipeline 事件通知',
+                text: `
+# <font color="#ff7f50">流水线通知</font>
+---
+- **项目：** ${req.body.project.name}
+- **分支**：${req.body.object_attributes.ref}
+- **流水线**：${req.body.commit.message}
+* **状态**：<font color="green">${req.body.object_attributes.status}</font>
+- **触发用户**：${req.body.user.name}
+- ## [查看详情](${req.body.object_attributes.url})`
+            }
+        };
+        // 向钉钉发送消息
+        axios.post(dingTalkWebhook, message)
+            .then(response => {
+                console.log('消息已发送到钉钉:', response.data);
+            })
+            .catch(error => {
+                console.error('发送消息到钉钉时出错:', error);
+            });
+    }
+
+    if (pipelineStatus === 'failed' ) {
+        //构造要发送给钉钉的消息
+        message = {
+            msgtype: 'markdown',
+            at: {
+                "isAtAll": true
+            },
+            markdown: {
+                title: 'GitLab Pipeline 事件通知',
+                text: `
+# <font color="#ff7f50">流水线通知</font> \n ---
+- **项目：** ${req.body.project.name}
+- **分支**：${req.body.object_attributes.ref}
+- **流水线**：${req.body.commit.message}
+* **状态**：<font color="red">${req.body.object_attributes.status}</font>
+- **触发用户**：${req.body.user.name}
+- ## [查看详情](${req.body.object_attributes.url})`
+            }
+        };
+
+        // 向钉钉发送消息
+        axios.post(dingTalkWebhook, message)
+            .then(response => {
+                console.log('消息已发送到钉钉:', response.data);
+            })
+            .catch(error => {
+                console.error('发送消息到钉钉时出错:', error);
+            });
+
+    }
+
+    // 返回200响应，表示 Webhook 请求已成功处理
+    res.status(200).send('Webhook received');
+});
+
+// 启动服务器
+app.listen(port, () => {
+    console.log(`Webhook 服务器正在监听 ${port} 端口...`);
+});

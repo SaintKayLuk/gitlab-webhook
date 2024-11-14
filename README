@@ -1,0 +1,7 @@
+# gitlab 发送webhook到钉钉机器人，有些事件没有，需要自己定义，加一个中间服务，充当gitlab的webhook地址，处理完消息再发给钉钉机器人
+
+## 打包成可执行文件
+
+```sh
+pkg .  -t node18-linux-x64 -o gitlab-webhook --no-bytecode
+```
