@@ -14,66 +14,109 @@ app.use(express.json());
 app.post('/gitlab-webhook', (req, res) => {
     // 获取流水线状态
     const pipelineStatus = req.body.object_attributes.status;
-    console.log(pipelineStatus)
+    console.log("pipelineStatus：",pipelineStatus)
+    const builds = req.body.builds || [];
 
-    let message=null
-    if (pipelineStatus === 'success' ) {
-        //构造要发送给钉钉的消息
-         message = {
-            msgtype: 'markdown',
-            markdown: {
-                title: 'GitLab Pipeline 事件通知',
-                text: `
+
+
+
+    if (pipelineStatus === "success") {
+        // 查找 stage 为 deploy 且 status 为 success 的构建
+        for (const build of builds) {
+            console.log("build.status：",build.status)
+            if (build.stage === "deploy" && build.status === "success") {
+                const environmentName = build.environment?.name || "未定义"
+                const message = {
+                    msgtype: 'markdown',
+                    markdown: {
+                        title: 'GitLab Pipeline 成功通知',
+                        text: `
 # <font color="#ff7f50">流水线通知</font>
 ---
 - **项目：** ${req.body.project.name}
 - **分支**：${req.body.object_attributes.ref}
+- **环境**：${environmentName}
 - **流水线**：${req.body.commit.message}
 * **状态**：<font color="green">${req.body.object_attributes.status}</font>
 - **触发用户**：${req.body.user.name}
 - ## [查看详情](${req.body.object_attributes.url})`
-            }
-        };
-        // 向钉钉发送消息
-        axios.post(dingTalkWebhook, message)
-            .then(response => {
-                console.log('消息已发送到钉钉:', response.data);
-            })
-            .catch(error => {
-                console.error('发送消息到钉钉时出错:', error);
-            });
-    }
+                    }
+                };
 
-    if (pipelineStatus === 'failed' ) {
-        //构造要发送给钉钉的消息
-        message = {
-            msgtype: 'markdown',
-            at: {
-                "isAtAll": true
-            },
-            markdown: {
-                title: 'GitLab Pipeline 事件通知',
-                text: `
-# <font color="#ff7f50">流水线通知</font> \n ---
+                axios.post(dingTalkWebhook, message)
+                    .then(response => {
+                        console.log('消息已发送到钉钉:', response.data);
+                    })
+                    .catch(error => {
+                        console.error('发送消息到钉钉时出错:', error);
+                    });
+
+            }
+        }
+    }else if (pipelineStatus === "failed") {
+        // 查找第一个失败的构建
+        const failedBuild = builds.find(build => build.status === "failed");
+
+        if (failedBuild) {
+            const failedStage = failedBuild.name || "未知阶段";
+            const environmentName = failedBuild.environment?.name;
+            console.log("failedStage：",failedStage)
+            console.log("environmentName：",environmentName)
+            const message = {
+                msgtype: 'markdown',
+                at: {
+                    "isAtAll": true
+                },
+                markdown: {
+                    title: 'GitLab Pipeline 失败通知',
+                    text: `
+# <font color="#ff7f50">流水线通知</font>
+---
 - **项目：** ${req.body.project.name}
-- **分支**：${req.body.object_attributes.ref}
-- **流水线**：${req.body.commit.message}
-* **状态**：<font color="red">${req.body.object_attributes.status}</font>
-- **触发用户**：${req.body.user.name}
-- ## [查看详情](${req.body.object_attributes.url})`
-            }
-        };
+- **分支：** ${req.body.object_attributes.ref}
+${environmentName ? `- **环境：** ${environmentName}` : ""}
+- **失败阶段：** ${failedStage}
+- **流水线：** ${req.body.commit.message}
+- **状态：** <font color="red">${req.body.object_attributes.status}</font>
+- **触发用户：** ${req.body.user.name}
+## [查看详情](${req.body.object_attributes.url})`
+                }
+            };
 
-        // 向钉钉发送消息
-        axios.post(dingTalkWebhook, message)
-            .then(response => {
-                console.log('消息已发送到钉钉:', response.data);
-            })
-            .catch(error => {
-                console.error('发送消息到钉钉时出错:', error);
-            });
+            // 向钉钉发送消息
+            axios.post(dingTalkWebhook, message)
+                .then(response => {
+                    console.log('消息已发送到钉钉:', response.data);
+                })
+                .catch(error => {
+                    console.error('发送消息到钉钉时出错:', error);
+                });
 
+        }
     }
+
+
+    // if (pipelineStatus === 'failed' ) {
+        //构造要发送给钉钉的消息
+//         message = {
+//             msgtype: 'markdown',
+//             at: {
+//                 "isAtAll": true
+//             },
+//             markdown: {
+//                 title: 'GitLab Pipeline 事件通知',
+//                 text: `
+// # <font color="#ff7f50">流水线通知</font> \n ---
+// - **项目：** ${req.body.project.name}
+// - **分支**：${req.body.object_attributes.ref}
+// - **流水线**：${req.body.commit.message}
+// * **状态**：<font color="red">${req.body.object_attributes.status}</font>
+// - **触发用户**：${req.body.user.name}
+// - ## [查看详情](${req.body.object_attributes.url})`
+//             }
+//         };
+
+    // }
 
     // 返回200响应，表示 Webhook 请求已成功处理
     res.status(200).send('Webhook received');
