@@ -5,7 +5,7 @@ const app = express();
 const port = 3000;
 
 // 钉钉机器人的 Webhook URL（替换为你自己的钉钉 webhook URL）
-const dingTalkWebhook = 'https://oapi.dingtalk.com/robot/send?access_token=3e78abf6f6fcbb85ec2c665f84b75bd26ef32c1f2b9a77372c2edb08e50f785c';
+const dingTalkWebhook = 'https://oapi.dingtalk.com/robot/send?access_token=';
 
 // 使服务器能够解析 JSON 请求体
 app.use(express.json());
@@ -36,7 +36,7 @@ app.post('/gitlab-webhook', (req, res) => {
 - **项目：** ${req.body.project.name}
 - **分支**：${req.body.object_attributes.ref}
 - **环境**：${environmentName}
-- **流水线**：${req.body.commit.message}
+- **流水线**：${req.body.commit.title}
 * **状态**：<font color="green">${req.body.object_attributes.status}</font>
 - **触发用户**：${req.body.user.name}
 - ## [查看详情](${req.body.object_attributes.url})`
@@ -76,10 +76,10 @@ app.post('/gitlab-webhook', (req, res) => {
 - **分支：** ${req.body.object_attributes.ref}
 ${environmentName ? `- **环境：** ${environmentName}` : ""}
 - **失败阶段：** ${failedStage}
-- **流水线：** ${req.body.commit.message}
+- **流水线：** ${req.body.commit.title}
 - **状态：** <font color="red">${req.body.object_attributes.status}</font>
 - **触发用户：** ${req.body.user.name}
-## [查看详情](${req.body.object_attributes.url})`
+- ## [查看详情](${req.body.object_attributes.url})`
                 }
             };
 
