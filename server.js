@@ -5,9 +5,9 @@ const app = express();
 const port = 3000;
 
 // 钉钉机器人的 Webhook URL（替换为你自己的钉钉 webhook URL）
+const dingTalkWebhook = 'https://oapi.dingtalk.com/robot/send?access_token=886bd39c5f1bd1fc15ebb8f4b8e9551149c04b4d8d72c23bbff4efd76b1a33f2';
 
-
-const dingTalkWebhook = 'https://oapi.dingtalk.com/robot/send?access_token=22b340754350a48aff0c24bdd7c7ff1beb200c514f974b747e08f9f212670441';
+// const dingTalkWebhook = 'https://oapi.dingtalk.com/robot/send?access_token=22b340754350a48aff0c24bdd7c7ff1beb200c514f974b747e08f9f212670441';
 
 
 // 使服务器能够解析 JSON 请求体
