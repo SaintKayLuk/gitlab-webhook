@@ -5,7 +5,10 @@ const app = express();
 const port = 3000;
 
 // 钉钉机器人的 Webhook URL（替换为你自己的钉钉 webhook URL）
-const dingTalkWebhook = 'https://oapi.dingtalk.com/robot/send?access_token=';
+
+
+const dingTalkWebhook = 'https://oapi.dingtalk.com/robot/send?access_token=22b340754350a48aff0c24bdd7c7ff1beb200c514f974b747e08f9f212670441';
+
 
 // 使服务器能够解析 JSON 请求体
 app.use(express.json());
@@ -26,6 +29,7 @@ app.post('/gitlab-webhook', (req, res) => {
             console.log("build.status：",build.status)
             if (build.stage === "deploy" && build.status === "success") {
                 const environmentName = build.environment?.name || "未定义"
+                const triggerUser = build.user.name;
                 const message = {
                     msgtype: 'markdown',
                     markdown: {
@@ -33,12 +37,12 @@ app.post('/gitlab-webhook', (req, res) => {
                         text: `
 # <font color="#ff7f50">流水线通知</font>
 ---
-- **项目：** ${req.body.project.name}
+- **项目**：${req.body.project.name}
 - **分支**：${req.body.object_attributes.ref}
 - **环境**：${environmentName}
 - **流水线**：${req.body.commit.title}
 * **状态**：<font color="green">${req.body.object_attributes.status}</font>
-- **触发用户**：${req.body.user.name}
+- **触发用户**：${triggerUser}
 - ## [查看详情](${req.body.object_attributes.url})`
                     }
                 };
@@ -58,10 +62,11 @@ app.post('/gitlab-webhook', (req, res) => {
         const failedBuild = builds.find(build => build.status === "failed");
 
         if (failedBuild) {
-            const failedStage = failedBuild.name || "未知阶段";
-            const environmentName = failedBuild.environment?.name;
-            console.log("failedStage：",failedStage)
-            console.log("environmentName：",environmentName)
+            // const failedStage = failedBuild.name || "未知阶段";
+            // const environmentName = failedBuild.environment?.name;
+            const environmentName = failedBuild.environment?.name || "未定义"
+            // 触发用户，当前job的触发用户
+            const triggerUser = failedBuild.user.name;
             const message = {
                 msgtype: 'markdown',
                 at: {
@@ -74,11 +79,10 @@ app.post('/gitlab-webhook', (req, res) => {
 ---
 - **项目：** ${req.body.project.name}
 - **分支：** ${req.body.object_attributes.ref}
-${environmentName ? `- **环境：** ${environmentName}` : ""}
-- **失败阶段：** ${failedStage}
+- **环境**：${environmentName}
 - **流水线：** ${req.body.commit.title}
-- **状态：** <font color="red">${req.body.object_attributes.status}</font>
-- **触发用户：** ${req.body.user.name}
+* **状态：** <font color="red">${req.body.object_attributes.status}</font>
+- **触发用户：** ${triggerUser}
 - ## [查看详情](${req.body.object_attributes.url})`
                 }
             };
